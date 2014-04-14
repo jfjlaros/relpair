@@ -1,0 +1,19 @@
+MARKER1   AUTOSOME 3   1    0.00
+1     .18
+2     .55
+3     .27
+MARKER2   AUTOSOME 4   1    0.02
+A     .01
+B     .07
+C     .86
+D     .06
+MARKER3   X-LINKED 3  23    0.00
+p     .32
+q     .61
+r     .07
+MARKER4   X-LINKED 5  23    0.03
+a     .14
+b     .02
+c     .79
+d     .01
+e     .04

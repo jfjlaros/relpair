@@ -1,0 +1,12 @@
+example.loc
+example.ped
+example.out
+all
+n
+n
+F
+M
+2
+0.01
+1
+10.0

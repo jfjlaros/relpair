@@ -1,0 +1,734 @@
+Release Notes
+-------------
+As of June 2004, there is a minor revision (v2.0.1) of Relpair available.
+This new version fixes a bug in Table 2 of the output.  Values previously
+assumed a critical value of 1 (CRITVAL, line 12 of control file).  The table
+now properly reflects the user's choice of CRITVAL.
+
+Also, v2.0.1 uses substantially less memory on some Linux configurations.
+A Linux executable is now provided.
+
+File formats are identical to those of v2.0.
+
+This document is largely unchanged from v2.0.  Note updates to the sections
+'Availability and Platforms' and 'Compiling Relpair'.
+
+Introduction
+------------
+Relpair v2.0 is a FORTRAN 77 program that uses a maximum likelihood approach
+to infer relationships of pairs of individuals based on genetic marker 
+data, either within families or across an entire sample.  The program 
+calculates and compares the multipoint probability of genetic marker data 
+conditional on different pairwise genetic relationships, and infers the
+relationship that makes the data most likely.  
+
+Based on the results from a Relpair analysis, a genetic analyst might choose 
+to reconstruct pedigrees containing one or more incorrect putative family 
+relationships, or to connect smaller families into larger pedigrees if 
+previously unrecognized relationships are identified.  Sample switches and 
+duplications can also be recognized and corrected.  These strategies can all 
+increase the power of genetic mapping studies.  
+
+Improvements in Relpair v2.0 over v0.9 include the consideration of four 
+additional relationship types (parent/offspring, grandparent/grandchild, 
+avuncular, and first cousin relationships) in addition to the four types 
+modeled by v0.9 (MZ twins, full sibs, half sibs, unrelated pairs).  Also new 
+to v2.0 are the ability to model genotype error and to handle X-linked data.  
+The output has been restructured so that the user can track down potential 
+problems more easily and can get a better overview of a given data set.  Also,
+the locus file is now in a flexible space-delimited format rather than the 
+column-specific format of v0.9.  
+
+Due to the new locus file format and the addition of three new entries to the
+control file, input files for v0.9 will not run directly in v2.0.  A Perl 
+script called convertlocusfile.pl is provided in the download package to 
+convert v0.9 locus files into v2.0 format (also see Input Files section).
+
+Availability and Platforms
+--------------------------
+Relpair v2.0.1 is available for free download from the following website:
+
+   http://csg.sph.umich.edu/
+
+Relpair v2.0.1 was developed and tested under a Solaris (UNIX) operating system.
+There is also a Linux executable available, compiled from the same source code.
+The Linux version has not been tested as extensively.  The source code is included 
+in the download package for users of other platforms.  Windows users (DOS or command
+prompt) can run the program with minor code modifications and a recompilation.
+See the section on Compiling Relpair for additional information.
+
+Conditions of Use
+-----------------
+Although Relpair v2.0 is distributed free of charge, please do not pass on a 
+copy of the program to others.  Anyone wishing to use the program should obtain 
+it directly from our website.  This allows us to keep accurate records of 
+software users, and to make users aware of improvements as they are made and 
+errors as they are corrected.
+
+Users are welcome to modify the source code of Relpair v2.0 for their own 
+purposes.  However, please do not redistribute such modified versions or any 
+portions of the code to others without first obtaining written permission from 
+the authors to do so.  Also, please clearly mark any such versions as 
+modifications of the original both in the banner that comes up when the program 
+starts running and in the output files.
+
+If Relpair v2.0 is used in any research, please acknowledge the use of the 
+program and include the names of the authors:  William L. Duren, Michael Epstein, 
+Mingyao Li, and Michael Boehnke.  Michael Epstein is a member of the faculty 
+of Emory University and the other three authors are at the University of Michigan.  
+If subroutines or other parts of Relpair v2.0 are used to build other programs 
+which are then used for research, even if these programs are not redistributed, 
+please include an acknowledgement that the work is based on Relpair v2.0 or 
+contains code from Relpair v2.0, and again give the names of the authors.
+
+Any research using this software or the methods or ideas behind it should 
+include references to the two papers listed at the end of this document in 
+the References section (Boehnke and Cox 1997, Epstein et al. 2000).
+
+These conditions of use also apply to Relpair v2.0.1.
+
+Assumptions
+-----------
+1. Eight different relationship types are considered in v2.0:  MZ twins, full 
+   sibs, half sibs, parent/offspring pairs, grandparent/grandchild pairs, 
+   avuncular pairs (uncle/nephew, uncle/niece, aunt/nephew, aunt/niece),
+   first cousins, and unrelated individuals.  In examining putative
+   relationships, unrelated pairs are specifically modeled as sharing zero 
+   alleles IBD.  However, in reporting inferred relationships, the definition 
+   is not quite so precise.  When a pair is inferred to be unrelated, that 
+   means that the pair is more likely to be in the unrelated category than in 
+   the most distant relationship category we consider, namely first cousins.  
+   It is of course possible that the pair are in fact second cousins or are in 
+   some way more distantly related.
+
+2. All genetic markers are codominant and marker allele frequencies are 
+   known.  Both autosomal and X-linked markers are handled by v2.0.
+
+3. Intermarker distances are known and there are no sex differences in 
+   recombination fractions.
+
+4. Genotyping is performed with an allele-specific error rate given by the 
+   user in the control file.  This is also new in v2.0.  In v0.9, genotyping 
+   was assumed to be error-free.  Our model makes the presumably incorrect 
+   assumption that when a genotyping error occurs, the reported allele appears 
+   in proportion to its population allele frequency.  However, we believe that 
+   this assumption does not significantly compromise our ability to infer 
+   relationships correctly, at least for reasonably low error rates.  The more 
+   important consideration when modeling genotype error is that we now allow 
+   some "wobble" in situations where IBD is known.  For example, MZ twins may 
+   appear to have a few discrepant genotypes, and parent/offspring pairs may 
+   appear to be IBS 0 at one or more loci (no alleles in common) due to errors 
+   in genotyping. 
+
+5. For purposes of calculating multilocus genotype probabilities, we assume 
+   no genetic interference.  For purposes of converting map distances to 
+   recombination fractions, we use Kosambi's (1944) mapping function.
+
+6. No marker has more than 99 alleles and no more than 9999 markers are to be 
+   analyzed. Chromosomes are of length no more than 50 Morgans.
+
+Input Files
+-----------
+Relpair requires 3 input files:  A control file specifying output filenames
+and various parameter settings; a locus file specifying marker names, positions 
+and allele frequencies; and a pedigree file specifying pedigree structure and 
+individual genotypes.
+
+1. Control File
+---------------
+After typing 'relpair' at the command line, the user is prompted for 
+the name of the control file to be used for the analysis.  The control
+file for v2.0 consists of 12 lines.  The first 9 of these 12 lines are
+the same as they were in v0.9, while the last 3 lines are new in v2.0.
+
+The following is an example control file (example.ctl in download package):
+
+example.loc
+example.ped
+example.out
+all
+n
+n
+F
+M
+2
+0.01
+1
+10.0
+
+The entries are:
+
+Line 1.  Name of locus file ('example.loc' in example).  The locus file
+         contains information about the markers to be used in the analysis, 
+         including marker names and their positions and allele names and 
+         their population frequencies.  See the Locus File section below 
+         for more details. 
+
+Line 2.  Name of pedigree file ('example.ped' in example).  The pedigree
+         file contains family and individual IDs, parental IDs, gender, 
+         twin status, and a set of genotypes for each individual.  In order
+         for putative relationships to be identified correctly, the pedigree
+         file should include entries for all founders, even if they are not
+         genotyped.  See the Pedigree File section for further details.
+
+Line 3.  Name of primary output file ('example.out' in example).  This file
+         contains an overview of the data and the user settings, followed by
+         tables and lists summarizing the possible discrepancies found by the 
+         program.  A second output file is also created with a '.detail' 
+         extension (would be 'example.out.detail' in example).  This additional 
+         file contains family-by-family output.  The contents of these two 
+         files are described more fully in the Output Files section.
+
+Line 4.  Type of analysis ('all' in example).  This entry should be
+         either 'family' or 'all'.  The 'family' designation indicates
+         that only pairs of individuals in the same family are to be
+         analyzed.  The 'all' designation indicates that all possible
+         pairs of individuals across the entire data set are to be
+         analyzed.
+
+Line 5.  Echo locus file? ('n' in example).  If desired, the user can
+         have the contents of the locus file echoed back into the primary 
+         output file by specifying 'y' here.
+
+Line 6.  Echo pedigree file? ('n' in example).  This option is provided
+         mostly for completeness, and the 'y' setting is only recommended
+         for use with small data sets.  If desired, the user can have the
+         contents of the pedigree file echoed back into the primary output 
+         file.  Note that the pedigree file can be extremely large (10Mb 
+         or more), since Relpair is designed to be run on an entire data set 
+         with genotypes from markers spread across the genome.
+
+Line 7.  Symbol for females ('F' in example).  This must be a single
+         character, and corresponds to the notation used in the pedigree
+         file to specify gender.
+
+Line 8.  Symbol for males ('M' in example).
+
+Line 9.  Minimum number of shared genotypes (2 in example).  Depending on
+         their spacing, quite a few markers may be needed in order to make
+         inferences regarding relationship types with any degree of certainty.
+         This entry represents the required minimum number of markers at which
+         a pair of individuals have both been genotyped in order for an
+         inference to be treated as reliable by the program.  The recommended
+         value is 75, but note that relatively widely spaced microsatellites
+         give much more information than do tightly bunched SNPs.
+
+Line 10. Assumed genotyping error rate (0.01, or 1%, in example).  This entry
+         should be set to a fractional value between 0 and 1 based on what is
+         believed to be the per-allele genotyping error rate for the data.  For
+         data sets with low error rates, this setting will primarily influence
+         situations where IBD status is known with certainty for a relative
+         type (e.g., at an autosomal locus, IBD=2 for MZ twins and IBD=1 for 
+         parent/offspring pairs).
+
+Line 11. Output option (1 in example).  Option 1 will limit pairwise output to
+         those pairs for which the putative and inferred relationship types
+         differ, and, if a discrepant pair is within a given family, all other
+         pairs within that family.  The potentially huge number of pairs from
+         different families which are assumed and also inferred to be unrelated
+         will not be output with this option.  Option 2 will output all pairs,
+         regardless of whether or not a discrepancy is inferred.  Option 2 is
+         included for completeness and is not recommended except perhaps with
+         small data sets or when within-family analyses are being run.
+
+Line 12. Critical value (10.0 in example).  This parameter sets the level at
+         which results will be reported in the output.  If the likelihood ratio
+         between putative and inferred relationship type (or between most likely
+         and next most likely relationship type in some instances) is greater 
+         than the critical value, the information about that pair will be 
+         reported in the output files.  If the critical value is set at 1.0, all 
+         discrepancies will be reported.  It is recommended that a first analysis 
+         on a large data set across all families be run with a high critical 
+         value (perhaps 1000.0) in order to keep the output at a manageable size.
+
+2. Locus File
+-------------
+The locus file, whose name is given in line 1 of the control file, contains
+information about marker names, types, and positions, as well as allele names
+and frequencies.  In v0.9, locus file entries had to conform to specific column
+restrictions.  In v2.0, entries within a line need only be separated by one or 
+more spaces.  Note, however, that this may make old locus files from v0.9 no 
+longer work in v2.0, since entries in v0.9 could be adjacent to each other, e.g, 
+'AUTOSOME14' represented an autosomal marker with 14 alleles.  In v2.0, this 
+must now read 'AUTOSOME 14' in order to work properly.  Use the accompanying 
+Perl script convertlocusfile.pl to convert v0.9 locus files to v2.0 locus files.
+
+Locus file entries consist of header lines for each marker followed by single
+lines for each allele of that marker.  There should be no blank lines in the
+file.  The file should not contain more than 2000 markers.  If the user has a 
+data set with more than 2000 markers (but no more than 9999), the code 
+parameter MAXLOC must be changed from 2000 to the number needed and the 
+program relpair.f recompiled (see Compiling Relpair section).
+
+The following is an example of a short locus file (example.loc in download 
+package):
+
+MARKER1   AUTOSOME 3   1    0.00
+1     .18
+2     .55
+3     .27
+MARKER2   AUTOSOME 4   1    0.02
+A     .01
+B     .07
+C     .86
+D     .06
+MARKER3   X-LINKED 3  23    0.00
+p     .32
+q     .61
+r     .07
+MARKER4   X-LINKED 5  23    0.03
+a     .14
+b     .02
+c     .79
+d     .01
+e     .04
+
+The 5 entries in the header line for each marker are:
+
+1. Marker name ('MARKER1' in example).  The marker name may be up to 32 
+   characters in length.
+
+2. Marker type ('AUTOSOME' in example).  This entry should be either 
+   'AUTOSOME' or 'X-LINKED'.  Allele sharing probabilities will be 
+   calculated appropriately.  It is recommended that X-linked markers be 
+   included in the data set if possible, as there are several instances
+   in which X-linked markers can provide critical information for inferring 
+   relationship types (see Epstein, et al., 2000).
+
+3. Number of alleles (3 in example).  The program assumes that no marker has
+   more than 50 alleles.  If the user has a marker with more than 50 alleles
+   (but no more than 99), the code parameter MAXALL should be changed from 50
+   to the number needed and the program relpair.f recompiled (see Compiling
+   Relpair section).  
+
+4. Chromosome number (1 in example).  This entry can be used in three different
+   ways.  If it is a positive integer, it will be interpreted as a chromosome 
+   number.  This tells Relpair how to group markers, since marker names don't 
+   always uniquely identify chromosomes and positions are given relative to the 
+   beginning of each chromosome, not genome-wide.  If the entry is -1 for a
+   given marker, that marker will be skipped in the analysis.  If the entry is 
+   0 for all markers, the markers will be treated as unlinked, regardless of 
+   the positions given for them.
+
+5. Position (0.00 in example).  Positions must be given in Morgans, not in cM,
+   and must be specified as floating point numbers.  Positions are interpreted
+   as being relative to the start of the chromosome specified in the previous
+   entry.  Positions less than 0 or greater than 50.0 will produce an error 
+   message.
+
+Following the header line, there should be one line corresponding to each allele
+for that marker.  This line should consist of an allele name and its frequency.
+The allele name may be any string of up to 8 characters (e.g., a repeat length, 
+a 1-n designation, or a nucleotide abbreviation for SNPs).  The allele name must 
+match its designation in the genotype portion of the pedigree file.
+
+The allele frequency must be a floating point number strictly greater than 0
+and no larger than 1.0.  Allele frequencies for a given marker should sum to 1.
+If they do not, Relpair will issue a warning and will rescale the frequencies so
+that they do sum to 1.  Since there is likely to be roundoff error in the allele
+frequencies, Relpair considers anything between 0.999 and 1.001 to be "close
+enough", and does not rescale.  If the user wishes to change the stringency of
+this check in either direction, the code parameter NFRQPR should be changed from
+3 to the number of decimal places desired and the program relpair.f recompiled
+(see Compiling Relpair section).
+
+3. Pedigree File
+----------------
+The pedigree file, whose name is given in line 2 of the control file, lists 
+individual IDs, gender, MZ twin status, and genotypes.  Parental IDs for each 
+nonfounder in the pedigree are included to allow complete pedigree 
+reconstruction.  This parental information is used to determine putative 
+relationships only; it is not used in Relpair's probabilistic model for 
+inferring relationships.  Relpair infers relationships based solely on the 
+genotypes of pairs of individuals, along with the marker types and positions, 
+allele frequencies, and genotype error rate provided by the user in the other 
+input files.  When X-linked markers are involved, the genders of the pair of
+individuals are also used in making inferences.
+
+Note that the pedigree file format is unchanged for v2.0.  Any pedigree file 
+used for analysis in v0.9 should also work without modification in v2.0.  Since 
+pedigree files can be quite large and potentially difficult to reformat, Relpair 
+allows the user to specify FORTRAN format statements giving the spacing of the 
+entries in the file.  Entries must be read by Relpair in the order specified 
+below.  If the user has a pedigree file in which the entries are in a different 
+order, the "T" feature of FORTRAN format statements may be used to tab to 
+particular columns, thus ensuring that entries are read in the proper order.
+
+In v2.0, several adjustable limits imposed upon the pedigree file are tied to 
+code parameters, as follows:
+
+   Parameter Name    Description                        Current Value
+   --------------    -------------------------------    -------------
+   MAXFAM            Maximum number of families             3000
+   MAXPEO            Maximum number of people within
+                       a given family                        200
+   MXPTOT            Maximum number of people in
+                       the entire data set                  5000
+
+If the user wishes to extend any of these limits, the corresponding parameter 
+in the PARAMETER statement near the beginning of relpair.f should be changed
+and the program recompiled (see Compiling Relpair section).
+
+The following is an example of a short pedigree file (example.ped in download 
+package):
+
+(I2,1X,A8)
+(3A8,2A1,A3,3(1X,A3))
+ 4 FAMILY1
+001-100
+001-101
+001-201 001-100 001-101 M13/3     q/q a/a
+001-202 001-100 001-101 M13/3 A/A q/q
+ 4 FAMILY2
+002-100
+002-101
+002-200 002-100 002-101 M 1/1 B/B p/p d/d
+002-201 002-100 002-101 F 2/3 A/C q/q a/a
+19 FAMILY3
+003-100
+003-101
+003-200                 M 1/2 C/C q/q a/a
+003-201 003-100 003-101 F 2/2 C/D r/r
+003-202                 M 2/3 A/A q/q c/c
+003-203 003-100 003-101 F 1/2 A/B r/r c/c
+003-204                 M 1/2 C/C p/p a/a
+003-205 003-100 003-101 F 2/3 C/D p/p b/b
+003-206                 M 1/3 B/B q/q a/a
+003-300 003-200 003-201 F11/2 A/B p/p c/c
+003-301                 M 1/3 B/B r/r a/a
+003-302 003-200 003-201 F11/2 A/B p/p c/c
+003-303 003-202 003-203 F 1/2 B/C q/q b/b
+003-304 003-204 003-203 F 1/3 A/D p/p c/c
+003-305                 M 2/3 B/B p/p c/c
+003-306 003-206 003-205 M 1/3 A/A r/r b/b
+003-400 003-301 003-302 F 1/2 B/D p/p c/c
+003-401 003-305 003-304 F 2/3 A/A q/q a/a
+003-402 003-305 003-304 M 1/2 B/B q/q a/a
+
+The first two lines of the pedigree file are FORTRAN format statements.
+These format statements describe the two types of lines present in the
+remainder of the pedigree file.  The first format statement describes
+the family header line appearing at the start of each family in the file,
+and the second statement describes the lines corresponding to each
+individual within a family.
+
+1. Family header line (' 4 FAMILY1' in example; (I2,1X,A8) is relevant 
+   format statement).  This line has two entries:  the number of individuals 
+   in the family and the name of the family.  The format statement tells 
+   Relpair how to read the data.  In this example, it tells Relpair to read 
+   the first entry as a right-justified 2-column integer (I2), then skip a 
+   column (1X), then read the second entry as an 8-character string (A8).  
+   The family name should never be longer than 8 characters in v2.0.
+
+2. Individual descriptor line ('001-201 001-100 001-101 M13/3     q/q a/a'
+   in example; (3A8,2A1,A3,3(1X,A3)) is relevant format statement).  There
+   should be one of these lines corresponding to every individual in the
+   family, including founders.  Family members without genotypes must be 
+   included if they are necessary for pedigree reconstruction, e.g., if
+   they appear as parents of some other member of the family.  For instance,
+   the example contains such entries for the first two individuals in each 
+   family.
+
+   The individual descriptor line has five primary entries followed by one 
+   entry for each genotype.  Again, the format statement tells Relpair how 
+   to read the data.  
+
+   The first three entries of the individual descriptor line are the ID of 
+   the individual followed by the IDs of both parents of the individual.  
+   If the parents are missing, the columns corresponding to the parent 
+   entries should be left blank.  Every individual must have either both 
+   parents or neither parent specified.  In this example, the ID entries 
+   are to be read in as three 8-character strings (3A8), so the entries 
+   must be placed in columns 1-8, 9-16, and 17-24, respectively.
+
+   The fourth entry is the gender of the individual.  The symbols for females
+   and males are specified by the user in lines 7 and 8, respectively, of the
+   control file.  In this example, the individual is male ('M').  The fifth
+   entry is the MZ twin status of the individual.  Anything other than blank
+   space for this entry will be interpreted as a twin, and the entry will be
+   matched with the corresponding entry for the other twin of the pair.  In
+   this example, the individual is a twin ('1').  Here, both the fourth and
+   fifth entries are to be read in as single character fields (2A1). 
+
+   The remaining entries on the line are genotype entries, one for each
+   locus in the locus file, regardless of whether a locus is designated in
+   the locus file to be skipped (-1 for chromosome number).  Genotypes in
+   v2.0 should be represented in the pedigree file as two allele names
+   separated by a slash ('/').  The allele names may be as long as eight
+   characters each, and must correspond exactly to one of the allele names
+   given in the locus file for the marker in question.  Missing genotypes 
+   should be represented by all blanks (no slash).  Entries with only one 
+   allele specified are not considered valid genotypes.  Therefore, X-linked 
+   males should be represented as homozygous for their one allele.  Relpair
+   will handle X-linked males appropriately internally, calculating 
+   probabilities based on a single allele, but for consistency of formats,
+   the user should specify two alleles.  In this example, the genotype entries 
+   are to be read in as 3-character entries separated by single spaces 
+   (A3,3(1X,A3)).
+
+Output Files
+------------
+Relpair produces two output files.  The first, whose name is provided by the
+user on line 3 of the control file, gives an overview of the results.  The
+second has the same name as the first, but with a .detail extension.  This
+file gives more complete information for each discrepant pair.  In addition, 
+results for all pairs within any family containing a discrepant pair are 
+written to the .detail file, to aid the user in tracking down overall patterns 
+of relationships when one or more relationships may have been misspecified.
+
+1. Summary file
+---------------
+The summary file begins with a report on the parameter settings specified in
+the control file, followed by a count of how many pairs did and did not share
+enough typed loci to be analyzed (the threshold is set by the user on line 9 
+of the control file).  The following is the relevant section from example.out:
+
+ NUMBER OF PAIRS SHARING ENOUGH TYPED LOCI (>=    2):        210
+ NUMBER OF PAIRS SHARING TOO FEW TYPED LOCI (<    2):          0
+ ---------------------------------------------------------------
+ TOTAL NUMBER OF PAIRS BEING ANALYZED:                       210
+
+It is important to note that any pair of individuals sharing too few typed 
+loci will be treated as providing too little information for any solid 
+inference about their true relationship.  Such pairs will not be included
+in the counts in the output tables or in the lists of discrepant pairs in 
+the summary file.
+
+The tables and lists which make up the rest of the summary file use 
+abbreviations for the various relationship types.  These abbreviations are 
+written to the summary file for reference, and are as follows:
+
+    NOTATION:
+
+              MZ -- MONOZYGOTIC TWINS             FULL(FS) -- FULL SIBS
+       P/OFF(PO) -- PARENT/OFFSPRING              HALF(HS) -- HALF SIBS
+       GP/GC(GG) -- GRANDPARENT/GRANDCHILD        AVNC(AV) -- AVUNCULAR
+        COUS(CO) -- FIRST COUSINS                UNREL(UN) -- UNRELATED
+
+The next portion of the summary file consists of two tables giving counts of
+pairs falling into various categories.  These tables should give the user a
+fairly good idea of how "clean" a given data set is.
+
+Table 1.  Counts of Strongly Inferred Relationships.  This table gives counts
+    of pairs whose inferred relationship is more likely than all others by at 
+    least a factor of the critical value specified by the user on line 12 of 
+    the control file.  The table is an 8x8 grid of all putative relationships 
+    versus all inferred relationships.  Thus, the diagonal of Table 1 gives 
+    counts of relationships that Relpair infers to be correctly specified.  
+    Off the diagonal are counts of pairs for which Relpair not only infers a 
+    discrepancy, but has enough information to infer the correct relationship 
+    of the pair with a high degree of certainty.
+
+    Note that these counts do not claim to give absolute truth.  Incorrect 
+    inferences are certainly possible, especially when the user specifies a 
+    small setting for the critical value.  Relpair merely provides the user 
+    with information on how often the likelihood ratio between the most likely 
+    inferred relationship and the next most likely inferred relationship 
+    exceeds the critical value.  Marginal totals are also given.
+
+Table 2.  Counts of Likely Discrepancies.  This table reports counts of pairs 
+    whose relationship appears to be misspecified, i.e., for which the inferred
+    relationship is more likely than the putative relationship by at least a 
+    factor of the critical value on line 12 of the control file.  Again, the 
+    table is an 8x8 grid of all putative relationships versus all inferred 
+    relationships, along with marginal totals.  Since this table gives counts 
+    of pairs for which the putative and inferred relationships are different, 
+    the diagonal will always consist of all zeros.  
+
+    For most large data sets, by far the largest single entry in Table 2 will 
+    be in the cell where people are putatively unrelated but are inferred to 
+    be first cousins.  This entry should be interpreted with a great deal of 
+    caution.  When examining all pairs across an entire data set, the great
+    majority of pairs will be putatively unrelated, so there are simply many 
+    chances for false inferences in this category.  In addition, v2.0 does not 
+    model any more distant relationships than first cousins.  It is possible 
+    that a pair will in fact be second cousins or some other higher-order 
+    relationship, yet Relpair will infer the pair to be first cousins.  All 
+    this means is that the pair is more likely to be first cousins than 
+    unrelated (by at least a factor of the critical value), so the possibility 
+    of higher order cousins is by no means precluded.  Conversely, if a pair 
+    is both putatively and inferred to be unrelated, this simply means that 
+    the pair is more likely to be unrelated than to be first cousins or 
+    anything more closely related.  Again, the possibility of higher order 
+    cousins is not precluded.
+
+The following is Table 2 from example.out:
+
+                                  INFERRED RELATIONSHIP
+
+    _______ _____ ______ ______ ______ ______ ______ _______ ________ ________ 
+   |       |     |      |      |      |      |      |       |        |        |
+   |       | MZ  | FULL | P/OFF| HALF | GP/GC| AVNC | COUS  |  UNREL |  TOTAL |
+   |_______|_____|______|______|______|______|______|_______|________|________|
+   |       |     |      |      |      |      |      |       |        |        |
+ P | MZ    |    0|     0|     0|     0|     0|     0|      0|       0|       0|
+ U |_______|_____|______|______|______|______|______|_______|________|________|
+ T |       |     |      |      |      |      |      |       |        |        |
+ A | FULL  |    0|     0|     0|     0|     0|     0|      1|       1|       2|
+ T |_______|_____|______|______|______|______|______|_______|________|________|
+ I |       |     |      |      |      |      |      |       |        |        |
+ V | P/OFF |    0|     0|     0|     1|     3|     0|      1|       9|      14|
+ E |_______|_____|______|______|______|______|______|_______|________|________|
+   |       |     |      |      |      |      |      |       |        |        |
+ R | HALF  |    0|     0|     0|     0|     0|     0|      0|       0|       0|
+ E |_______|_____|______|______|______|______|______|_______|________|________|
+ L |       |     |      |      |      |      |      |       |        |        |
+ A | GP/GC |    0|     0|     0|     0|     0|     0|      0|       0|       0|
+ T |_______|_____|______|______|______|______|______|_______|________|________|
+ I |       |     |      |      |      |      |      |       |        |        |
+ O | AVNC  |    0|     0|     0|     0|     0|     0|      0|       0|       0|
+ N |_______|_____|______|______|______|______|______|_______|________|________|
+ S |       |     |      |      |      |      |      |       |        |        |
+ H | COUS  |    0|     0|     0|     0|     0|     0|      0|       0|       0|
+ I |_______|_____|______|______|______|______|______|_______|________|________|
+ P |       |     |      |      |      |      |      |       |        |        |
+   | UNREL |    0|    10|    12|     0|     7|     5|      0|       0|      34|
+   |_______|_____|______|______|______|______|______|_______|________|________|
+   |       |     |      |      |      |      |      |       |        |        |
+   | TOTAL |    0|    10|    12|     1|    10|     5|      2|      10|      50|
+   |_______|_____|______|______|______|______|______|_______|________|________|
+ 
+
+Following Tables 1 and 2, the summary file reports cursory information on 
+probable discrepant pairs, with entries sorted by highest likelihood ratio.  
+This gives the user the opportunity to determine quickly where the most likely 
+errors are, and so may provide a priority list of pairs to investigate.  This 
+information is separated into two lists, with the first listing all pairs 
+within families for which the inferred relationship is more likely than the 
+putative relationship by at least a factor of the critical value, and the 
+second listing all such pairs where the members are putatively in separate 
+families.  Of course, if the user specifies in the control file that only 
+within-family analysis is to be done, the second section will not have any 
+entries.
+
+The following is a sample entry from the first section (from example.out):
+
+ FAMILY3   003-203   003-303   PO  GG      704.8
+
+The fields are, from left to right, the family ID of the pair, the two 
+individual IDs, the putative relationship (parent/offspring in this case), 
+the inferred relationship (grandparent/grandchild in this case), and the 
+likelihood ratio of inferred to putative relationship (704.8 in this case).  
+So, in this example, we have a situation where individuals 003-203 and 003-303 
+were specified in the pedigree file to have a parent/offspring relationship 
+but in fact are more likely to be a grandparent/grandchild pair, by a factor 
+of 704.8.
+
+The following is a sample entry from the second section (again from 
+example.out):
+
+ FAMILY1   001-202   FAMILY3   003-306   UN  FS      241.0
+
+The fields are the same as in the first section, except that a second family
+ID is added as the third entry, since these pairs are putatively from 
+separate families.  In this case, individual 001-202 and individual 003-306 
+are putatively unrelated, as are all pairs in this section, but Relpair has 
+inferred that they may in fact be full sibs, with likelihood ratio 241.0.  
+Again, it should be emphasized that Relpair is only raising a flag here, not 
+claiming to know truth.  In a situation such as this, the investigator might
+wish to use other available information to try to confirm the relationship 
+directly.
+
+2. Detail file
+--------------
+The detail file provides more information on the discrepant pairs reported in 
+the summary file, to aid the user in tracking down problems.  The file begins
+with listings of results for all pairs within any family having at least one
+discrepancy.  The following is a header section and a sample entry for a 
+family in the example file, example.out.detail:
+
+ _______________________________________________________________________________
+
+ *** ALL PAIRS WITHIN FAMILY FAMILY3  (32 DISCREPANCIES) ***
+ _______________________________________________________________________________
+
+                RELATION                     LIKELIHOOD RATIOS
+  PED      ID    PUT INF   MZ    FULL   P/OFF  HALF   GP/GC  AVNC  COUSIN  UNREL
+ _______________________________________________________________________________
+
+ FAMILY3  003-201  PO UN <.0001 0.0051 0.0004 0.2587 0.2592 0.2585 0.5684 1.0000
+ FAMILY3  003-302  ^^^^^ INF/PUT RATIO: 2772.2    # SHARED GENOTYPED LOCI:     3
+
+The notation for the relationship types is the same as that used in the summary
+file, and is also echoed at the top of the detail file for reference.  There are
+two lines of output for every pair listed.  As in the summary file, these lines
+include the family and individual IDs of the pair and the putative and inferred
+relationship types, as well as the ratio of inferred to putative likelihood.
+The scaled likelihood ratios for each type of relationship are also given.  The
+most likely relationship type will always have a scaled likelihood ratio of 
+1.0000 (UNREL in this example).  The other relationship types will have scaled 
+likelihood ratios between 0 and 1, with larger values indicating more likely 
+relationships.  In the above example, we can see that the second most likely 
+relationship is first cousins, with a value of 0.5684.  Half sibs, grandparent/
+grandchild, and avuncular are all about equally likely, but considerably less 
+likely than either unrelated or first cousins.  The other three relationship 
+types are all quite unlikely.
+
+The second line of output for each pair has two more features not included in
+the summary file.  At the end of the line is the number of shared genotyped 
+loci for the pair (3 in this example).  Also, if the relationship of the pair 
+is considered to be misspecified (putative and inferred relationships differ, 
+the pair shares enough typed loci, and the inferred to putative ratio is 
+suitably high), a visual cue is given by writing a string of carets ('^^^^^') 
+under the abbreviations for the putative and inferred relationships.  Pairs not 
+having the string of carets are not considered to be discrepant, but are 
+included to give the user an overall picture of the likely relationships 
+within the family.  The number of discrepancies listed in the header for each 
+family corresponds to the number of pairs with carets.
+
+Following the within-family output, the detail file continues with listings
+of discrepant pairs from different families.  The output for these pairs is 
+in the same format as in the within-family sections.  The following is a 
+typical entry in example.out.detail from this section:
+
+ FAMILY2  002-200  UN GG <.0001 0.5487 0.1179 0.9900 1.0000 0.9851 0.5350 0.0998
+ FAMILY3  003-300  ^^^^^ INF/PUT RATIO:   10.0    # SHARED GENOTYPED LOCI:     4
+
+In the summary file, these pairs were sorted by inferred to putative ratio.  
+In the detail file, however, a different view of the data is given.  Here, 
+pairs are sorted first into sections for each different type of inferred 
+relationship, and within those sections are sorted by the family ID of the 
+first individual of the pair.  This sorting pushes the potentially large number 
+of putative unrelated pairs inferred to be first cousins to the bottom of the
+file, and also allows the user to scan visually for multiple "hits" across any
+two particular families.
+
+Compiling Relpair
+-----------------
+On either a Solaris (UNIX) system or a Linux system, the following command will
+compile the source code for Relpair v2.0.1, which is contained in the file 
+relpair.v2.0.1.f:
+
+   f77 -s relpair.v2.0.1.f -O3 -o relpair.v2.0.1
+
+The '-s' option tells the compiler to strip all debug symbols from the 
+executable, potentially reducing its size substantially.  The '-O3' option 
+turns on a suite of code optimizations, and can often increase the speed of 
+the program by a factor of 5 or more.  The '-o relpair.v2.0.1' portion of
+the command specifies that the name of the executable file will be "relpair.v2.0.1".
+
+Other compiler options may be appropriate (or even necessary) on other systems.
+Please consult your local system support group for further information if there
+are any problems with compilation.
+
+Two executables are included in the download package for users wishing to use
+the program without modification on either Solaris or Linux systems.  On Solaris,
+use relpair.v2.0.1.solaris; on Linux, use relpair.v2.0.1.linux.
+
+Any user who makes large increases in code parameter settings should be aware
+that the resulting versions could require substantially more memory to run.  
+Such changes should be made with caution.
+
+Contacts
+--------
+Suggestions, comments, questions, and bug reports are all welcome.  Please 
+send all correspondence via email to Bill Duren, the primary author of the 
+code, at the following address:  wld@umich.edu.
+
+References
+----------
+Boehnke M, Cox NJ (1997) Accurate inference of relationships in sib-pair linkage 
+studies.  Am J Hum Genet 61:423-429
+
+Epstein M, Duren W, and Boehnke M (2000) Improved inference of relationship for
+pairs of individuals.  Am J Hum Genet 67:1219-1231
