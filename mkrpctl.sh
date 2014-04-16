@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cat << EOF > $1.ctl
+cat << EOF
 $1.loc
 $1.ped
 $1.out
