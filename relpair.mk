@@ -4,8 +4,9 @@
 #
 
 # RELPAIR.
-RELPAIR := ../../relpair
-MKRPCTL := sh ../mkrpctl.sh
+RELPAIR_PATH := /usr/local/relpair/relpair-2.0.2
+RELPAIR := $(RELPAIR_PATH)/relpair
+MKRPCTL := sh $(RELPAIR_PATH)/mkrpctl.sh
 
 # Input and output files.
 #
