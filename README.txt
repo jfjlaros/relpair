@@ -1,3 +1,7 @@
+Version 2.0.2 of Relpair has been changed slightly to accommodate for larger
+datasets. Helper programs have been added for bulk analysis. See relpair.txt
+for more information.
+
 Version 2.0.1 of Relpair is a minor bug fix release.  There are two primary improvements
 over Version 2.0:
 

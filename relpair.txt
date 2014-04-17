@@ -1,5 +1,21 @@
 Release Notes
 -------------
+
+v2.0.2
+------
+In minor revision v2.02, some defaults were changed to accommodate for larger
+datasets. The maximum number of alleles is changed from 50 to 99, the maximum
+number of people from 200 to 1000 and the maximum family buffer size is now a
+parameter set to 50000000.
+
+A Makefile was added to make compilation (for Linux) easier.
+
+Added scripts for parallel data analysis:
+- A script that generates a .ctl file (mkrpctl.sh).
+- A Makefile that starts data analysis for multiple inputs (relpair.mk).
+
+v2.0.1
+------
 As of June 2004, there is a minor revision (v2.0.1) of Relpair available.
 This new version fixes a bug in Table 2 of the output.  Values previously
 assumed a critical value of 1 (CRITVAL, line 12 of control file).  The table
