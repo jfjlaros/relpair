@@ -11,9 +11,9 @@ MKRPCTL := sh ../mkrpctl.sh
 #
 
 IN := ped
-TEMP := ctl out.detail
-OUT := out
-ERR := fort.1162293296
+TEMP := ctl
+OUT := out out.detail
+ERR := fort.1162293296 core
 
 INPUT := $(basename $(shell ls *.$(IN)))
 INTERMEDIATE := $(foreach I, $(TEMP), $(addsuffix .$I, $(INPUT)))
