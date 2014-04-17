@@ -10,7 +10,6 @@ FORTRAN := gfortran
 #
 
 OUTPUT := relpair
-VERSION := v2.0.1
 
 # Pseudo targets.
 #
@@ -25,5 +24,5 @@ all: $(OUTPUT)
 distclean:
 	rm $(OUTPUT)
 
-%: %.$(VERSION).f
+%: %.f
 	$(FORTRAN) -o $@ $<
