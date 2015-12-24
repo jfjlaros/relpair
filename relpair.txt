@@ -3,7 +3,7 @@ Release Notes
 
 v2.0.2
 ------
-In minor revision v2.02, some defaults were changed to accommodate for larger
+In minor revision v2.0.2, some defaults were changed to accommodate for larger
 datasets. The maximum number of alleles is changed from 50 to 99, the maximum
 number of people from 200 to 1000 and the maximum family buffer size is now a
 parameter set to 50000000.
